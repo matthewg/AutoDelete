@@ -88,6 +88,9 @@ func (b *Bot) ConnectDiscord(shardID, shardCount int) error {
 	s.AddHandler(b.OnChannelPins)
 	s.AddHandler(b.HandleMentions)
 	s.AddHandler(b.OnMessage)
+	s.AddHandler(b.HandleReactionAdd)
+	s.AddHandler(b.HandleReactionRemove)
+	s.AddHandler(b.HandleReactionRemoveAll)
 	me, err := s.User("@me")
 	if err != nil {
 		fmt.Println("get me:", err)
@@ -100,6 +103,41 @@ func (b *Bot) ConnectDiscord(shardID, shardCount int) error {
 		return errors.Wrap(err, "open socket")
 	}
 	return nil
+}
+
+func (b *Bot) MessageRetainEmojiState(channelID string, messageID string, countChangeFn func(int) int) {
+	b.mu.RLock()
+	mCh, ok := b.channels[channelID]
+	b.mu.RUnlock()
+
+	if !ok {
+		b.loadChannel(channelID, QOSNewMessage)
+		b.mu.RLock()
+		mCh = b.channels[channelID]
+		b.mu.RUnlock()
+	}
+
+	if mCh != nil {
+		mCh.ChangeRetainReactCount(m.Message, countChangeFn)
+	}
+}
+
+func (b *Bot) HandleReactionAdd(s *discordgo.Session, m *discordgo.MessageReactionAdd) {
+	if (b.Config.RetainReact != "" && m.Emoji.Name == b.Config.RetainReact) {
+		b.MessageRetainEmojiState(m.ChannelID, m.MessageID, func(curr int) int { return curr + 1})
+	}
+}
+
+func (b *Bot) HandleReactionRemove(s *discordgo.Session, m *discordgo.MessageReactionRemove) {
+	if (b.Config.RetainReact != "" && m.Emoji.Name == b.Config.RetainReact) {
+		b.MessageRetainEmojiState(m.ChannelID, m.MessageID, func(curr int) int { return curr - 1})
+	}
+}
+
+func (b *Bot) HandleReactionRemoveAll(s *discordgo.Session, m *discordgo.MessageReactionRemoveAll) {
+	if (b.Config.RetainReact != "" && m.Emoji.Name == b.Config.RetainReact) {
+		b.MessageRetainEmojiState(m.ChannelID, m.MessageID, func(_ int) int { return 0})
+	}
 }
 
 func (b *Bot) HandleMentions(s *discordgo.Session, m *discordgo.MessageCreate) {

@@ -74,6 +74,8 @@ type Config struct {
 
 	BacklogLengthLimit int `yaml:"backlog_limit"`
 	DonorBacklogLimit  int `yaml:"backlog_limit_donor"`
+
+	RetainReact string `yaml:"retain_react"`
 }
 
 type BansFile struct {

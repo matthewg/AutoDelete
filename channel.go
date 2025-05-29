@@ -105,6 +105,7 @@ func init() {
 type smallMessage struct {
 	MessageID string
 	PostedAt  time.Time
+	RetainReactCount int
 }
 
 // A ManagedChannel holds all the AutoDelete-related state for a Discord channel.
@@ -424,6 +425,18 @@ func (s liveMessagesSort) Less(i, j int) bool {
 	return s[i].PostedAt.Before(s[j].PostedAt)
 }
 
+func (c *ManagedChannel) ChangeRetainReactCount(m *discordgo.Message, countChangeFn func (int) int) {
+	<-c.isStarted
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	for _, v := range c.liveMessages {
+		if v.MessageID == m.ID {
+			v.retainReactCount = countChangeFn(v.retainReactCount)
+		}
+	}
+}
+
 func (c *ManagedChannel) AddMessage(m *discordgo.Message) {
 	<-c.isStarted
 	needReap := false
@@ -445,9 +458,19 @@ func (c *ManagedChannel) AddMessage(m *discordgo.Message) {
 		needReap = true
 	}
 
+	retainReactCount := 0
+	if (c.Bot.Config.RetainReact != "") {
+		for _, react := range m.Reactions {
+			if react.Emoji.Name == c.Bot.Config.RetainReact {
+				retainReactCount++
+			}
+		}
+	}
+
 	c.liveMessages = append(c.liveMessages, smallMessage{
 		MessageID: m.ID,
 		PostedAt:  time.Now(),
+		RetainReactCount: retainReactCount
 	})
 	c.mu.Unlock()
 
