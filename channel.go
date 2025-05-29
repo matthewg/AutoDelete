@@ -425,14 +425,14 @@ func (s liveMessagesSort) Less(i, j int) bool {
 	return s[i].PostedAt.Before(s[j].PostedAt)
 }
 
-func (c *ManagedChannel) ChangeRetainReactCount(m *discordgo.Message, countChangeFn func (int) int) {
+func (c *ManagedChannel) ChangeRetainReactCount(messageID string, countChangeFn func (int) int) {
 	<-c.isStarted
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
 	for _, v := range c.liveMessages {
-		if v.MessageID == m.ID {
-			v.retainReactCount = countChangeFn(v.retainReactCount)
+		if v.MessageID == messageID {
+			v.RetainReactCount = countChangeFn(v.RetainReactCount)
 		}
 	}
 }
@@ -459,9 +459,9 @@ func (c *ManagedChannel) AddMessage(m *discordgo.Message) {
 	}
 
 	retainReactCount := 0
-	if (c.Bot.Config.RetainReact != "") {
+	if (c.bot.Config.RetainReact != "") {
 		for _, react := range m.Reactions {
-			if react.Emoji.Name == c.Bot.Config.RetainReact {
+			if react.Emoji.Name == c.bot.Config.RetainReact {
 				retainReactCount++
 			}
 		}

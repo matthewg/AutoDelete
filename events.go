@@ -118,7 +118,7 @@ func (b *Bot) MessageRetainEmojiState(channelID string, messageID string, countC
 	}
 
 	if mCh != nil {
-		mCh.ChangeRetainReactCount(m.Message, countChangeFn)
+		mCh.ChangeRetainReactCount(messageID, countChangeFn)
 	}
 }
 
