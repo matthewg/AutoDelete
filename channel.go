@@ -470,7 +470,7 @@ func (c *ManagedChannel) AddMessage(m *discordgo.Message) {
 	c.liveMessages = append(c.liveMessages, smallMessage{
 		MessageID: m.ID,
 		PostedAt:  time.Now(),
-		RetainReactCount: retainReactCount
+		RetainReactCount: retainReactCount,
 	})
 	c.mu.Unlock()
 
